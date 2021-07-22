@@ -21,7 +21,6 @@ static Reader *readers = NULL;
 
 /**********************************************************************/
 
-
 static const char *pcur;
 
 char sexpeek(int n) { return *(pcur + n); }
@@ -29,109 +28,130 @@ char sexnext(int n) { return *(pcur += n); }
 
 int sexterm(char c) { return isspace(c) || c == '(' || c == ')' || !c; }
 
+/**********************************************************************/
 
-static int as_float(char *str, float *out) {
+static int as_dec(char *str, float *out) {
   char *ptr = NULL;
   float f = strtod(str, &ptr);
   if (!*ptr) *out = f;
   return !*ptr;
 }
 
-static int as_long(char *str, long *out) {
+static int as_int(char *str, long *out) {
   char *ptr = NULL;
   long i = strtol(str, &ptr, 10);
   if (!*ptr) *out = i;
   return !*ptr;
 }
 
-static char *read_value(void) {
+static void read_num(SexNode *node) {
+  char *val = sexscan(sexterm);
+  if (as_int(val, &node->vint))
+    node->type = SEX_INTEGER;
+  else if (as_dec(val, &node->vdec))
+    node->type = SEX_DECIMAL;
+  else {
+    node->type = SEX_INTEGER;
+    node->vint = atoi(val);
+  }
+}
+
+static void read_sym(SexNode *node) {
+  node->vsym = sexscan(sexterm);
+}
+
+static void read_str(SexNode *node) {
+  int len=0, cap=32;
+  char *buf = malloc((cap+1) * sizeof(char));
+  while (sexpeek(1) && (sexpeek(1) != '"')) {
+    buf[len++] = sexnext(1);
+    if (len >= cap) buf = realloc(buf, ((cap <<= 1) + 1) * sizeof(char));
+  }
+  sexnext(1); /* consume close quote */
+  buf[len] = '\0';
+  node->vstr = realloc(buf, (len+1) * sizeof(char));
+}
+
+static SexNode *read_cur(void);
+
+static void read_list(SexNode *node) {
+  SexNode *tail = NULL;
+  while (*pcur && sexnext(1)) {
+    if (*pcur == ')') break;
+    SexNode *next = read_cur();
+    if (!node->list)
+      node->list = tail = next;
+    else
+      tail = tail->next = next;
+    if (!next) break;
+  }
+}
+
+static SexNode *read_cur(void) {
+  char c = *pcur;
+  while (isspace(c)) c = sexnext(1);
+
+  if (!c) return NULL;
+
+  SexNode *node = sexnode(0);
+
+  if (c == '(') {
+    node->type = SEX_LIST;
+    read_list(node);
+  }
+  else if (c == '"') {
+    node->type = SEX_STRING;
+    read_str(node);
+  }
+  else if (isalpha(c)) {
+    node->type = SEX_SYMBOL;
+    read_sym(node);
+  }
+  else if (isdigit(c) || c=='-') {
+    read_num(node); /* read_num will set node->type */
+  }
+  else {
+    for (Reader *r=readers; r; r = r->next) {
+      if (r->sigil == c) {
+        node->type = c;
+        r->read(node);
+      }
+    }
+    if (node->type == 0) {
+      node->type = SEX_SYMBOL;
+      read_sym(node);
+    }
+  }
+
+  return node;
+}
+
+/**********************************************************************/
+
+SexNode *sexnode(char type) {
+  SexNode *n = calloc(1, sizeof(SexNode));
+  n->type = type;
+  return n;
+}
+
+char *sexscan(int (*is_term)(char)) {
   char buffer[VALCHARS_MAX + 1];
   int len = 0;
   do {
     buffer[len++] = sexcur();
-    if (sexterm(sexpeek(1))) break;
+    if (is_term(sexpeek(1))) break;
   } while (sexnext(1));
   buffer[len] = '\0';
   char *str = malloc((len+1)*sizeof(char));
   return strcpy(str, buffer);
 }
 
-static char *read_string(void) {
-  int len=0, cap=32;
-  char *buf = malloc((cap+1) * sizeof(char));
-  while (sexpeek(1) && (sexpeek(1) != '"')) {
-    if (len >= cap) buf = realloc(buf, (cap *= 2) * sizeof(char) + 1);
-    buf[len++] = sexnext(1);
-  }
-  sexnext(1); /* consume close quote */
-  buf[len] = '\0';
-  return realloc(buf, (len+1) * sizeof(char));
+SexNode *sexread(const char *str) {
+  pcur = str;
+  SexNode *node = read_cur();
+  pcur = NULL;
+  return node;
 }
-
-static SexNode *newnode(SexNodeType type) {
-  SexNode *n = calloc(1, sizeof(SexNode));
-  n->type = type;
-  return n;
-}
-
-SexNode *sexparse(const char *str) {
-  if (*str != '(') return NULL;
-
-  SexNode *tail, *head = NULL;
-
-  for (pcur=str; *pcur && sexnext(1);) {
-    SexNode *node = NULL;
-    char cur = *pcur;
-
-    while (isspace(cur)) cur = sexnext(1);
-
-    if (!cur) break; /* end of input */
-    if (cur == ')') break; /* end of list */
-
-    if (cur == '(') { /* start of list */
-      node = newnode(SEX_LIST);
-      node->list = sexparse(pcur);
-    }
-    else if (cur == '"') { /* start of string */
-      node = newnode(SEX_STRING);
-      node->vstr = read_string();
-    }
-    else if (isalnum(cur) || cur=='-') {  /* start of number or symbol */
-      node = newnode(0);
-      char *val = read_value();
-      if (as_long(val, &node->vint))
-        node->type = SEX_INTEGER;
-      else if (as_float(val, &node->vdec))
-        node->type = SEX_DECIMAL;
-      else {
-        node->type = SEX_SYMBOL;
-        node->vsym = val;
-      }
-    }
-    else { /* check for user-defined readers */
-      for (Reader *r=readers; r; r = r->next) {
-        if (r->sigil == cur) {
-          node = newnode(r->sigil);
-          node->vusr = r->read();
-        }
-      }
-    }
-
-    if (node == NULL) { /* default to symbol */
-      node = newnode(SEX_SYMBOL);
-      node->vsym = read_value();
-    }
-
-    node->next = NULL;
-    if (head == NULL)
-      head = tail = node;
-    else
-      tail = tail->next = node;
-  }
-
-  return head;
-}
-
 
 void sexfree(SexNode *node) {
   while (node) {
@@ -154,16 +174,15 @@ void sexfree(SexNode *node) {
   }
 }
 
-
-void sexread(char sigil, SexReader read, FreeFn free) {
+void sexreader(char sigil, SexReader read, FreeFn free) {
   Reader *r = calloc(1, sizeof(Reader));
   *r = (Reader){.sigil=sigil, .read=read, .free=free};
-  Reader *p = readers;
-  if (!p) {
+  Reader *itr = readers;
+  if (!itr) {
     readers = r;
   } else {
-    while (p && p->next) p = p->next;
-    p->next = r;
+    while (itr->next) itr = itr->next;
+    itr->next = r;
   }
 }
 

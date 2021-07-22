@@ -26,32 +26,32 @@ typedef struct SexNode SexNode;
 
 enum SexNodeType {
   SEX_LIST    = '\a',
-  SEX_STRING  = '\b',
-  SEX_SYMBOL  = '\t',
+  SEX_SYMBOL  = '\b',
+  SEX_STRING  = '\t',
   SEX_INTEGER = '\n',
   SEX_DECIMAL = '\v',
 };
 
 struct SexNode {
   SexNode *next;
-  SexNodeType type;
   union {
-    SexNode *list;
-    long  vint;
-    float vdec;
-    char *vstr;
-    char *vsym;
-    void *vusr;
+    SexNode *list;  /* type SEX_LIST */
+    char    *vsym;  /* type SEX_SYMBOL */
+    char    *vstr;  /* type SEX_STRING */
+    long     vint;  /* type SEX_INTEGER */
+    float    vdec;  /* type SEX_DECIMAL */
+    void    *vusr;  /* custom type */
   };
+  char type;
 };
 
 /*
-** Recursively parse an s-expression
+** Recursively parse an s-expression into a tree of SexNodes
 */
-SexNode *sexparse(const char *str);
+SexNode *sexread(const char *str);
 
 /*
-** Recursively free an s-expression's memory
+** Recursively free a SexNode's memory
 */
 void sexfree(SexNode *node);
 
@@ -63,29 +63,17 @@ void sexfree(SexNode *node);
 */
 
 /*
-** Current character manipulation
-*/
-char sexnext(int);  /* returns current char and increments cur by n */
-char sexpeek(int);  /* peek char at cur+n without moving cur */
-#define sexcur() sexpeek(0)
-
-/*
-** Returns 1 if the character is a value terminator, 0 otherwise
-*/
-int sexterm(char c);
-
-/*
-** A Reader function consumes a number of characters and returns
-** a pointer which will be stored in node->vusr.
+** A reader function consumes some characters, interprets them into
+** a datatype, and stores a pointer to the data in node->vusr.
 **
-** When the reader is called, sexcur() will return the sigil. This
-** allows the same function to handle multiple sigils.
+** When the reader is called, cur is pointing at the sigil. This allows
+** the same function to read multiple datatypes.
 **
 ** The reader should consume only as many characters as it uses. That
-** is, when the reader is finished, sexpeek(0) should return the _last_
+** is, when the reader is finished, sexcur() should return the _last_
 ** character used by the reader. 
 */
-typedef void *(*SexReader)(void);
+typedef void (*SexReader)(SexNode *node);
 
 /*
 ** Add a reader
@@ -103,7 +91,38 @@ typedef void *(*SexReader)(void);
 **  The last parameter will be called by sexfree() to free the returned
 **  pointer.
 */
-void sexread(char sigil, SexReader, void(*ufree)(void*));
+void sexreader(char sigil, SexReader, void(*ufree)(void*));
+
+
+
+/**********************************************************************/
+/*
+** Reader Utilities
+*/
+
+/*
+** Allocate and return a new SexNode of type `type`
+** Memory will be initialized to zero.
+*/
+SexNode *sexnode(char type);
+
+/*
+** Current character manipulation
+*/
+char sexnext(int n);  /* move cur by n and return the new character */
+char sexpeek(int n);  /* peek char at cur+n without moving cur */
+#define sexcur() sexpeek(0)
+
+/*
+** Get a string of the value pointed to by cur. That is, every character
+** before the next whitespace, (, or )
+*/
+char *sexscan(int (*is_term)(char));
+
+/*
+** Returns 1 if the character is null, whitespace, (, or ).
+*/
+int sexterm(char c);
 
 
 #endif /* SEX__H */
