@@ -48,12 +48,10 @@ static char *read_value(void) {
 static char *read_string(void) {
   int len=0, cap=32;
   char *buf = malloc((cap+1) * sizeof(char));
-  sexnext(1); /* ignore opening quote */
-  do {
+  while (sexpeek(1) && (sexpeek(1) != '"')) {
     if (len >= cap) buf = realloc(buf, (cap *= 2) * sizeof(char) + 1);
-    buf[len++] = sexcur();
-    if (sexpeek(1) == '"') break;
-  } while (sexnext(1));
+    buf[len++] = sexnext(1);
+  }
   sexnext(1); /* consume close quote */
   buf[len] = '\0';
   return realloc(buf, (len+1) * sizeof(char));
