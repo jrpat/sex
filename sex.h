@@ -4,6 +4,9 @@
 **
 */
 
+#ifndef SEX__H
+#define SEX__H
+
 /*
 ** Define these macros to use a different allocator
 */
@@ -67,8 +70,16 @@ char sexpeek(int);  /* peek char at cur+n without moving cur */
 #define sexcur() sexpeek(0)
 
 /*
+** Returns 1 if the character is a value terminator, 0 otherwise
+*/
+int sexterm(char c);
+
+/*
 ** A Reader function consumes a number of characters and returns
-** a pointer which will be stored in node->vusr
+** a pointer which will be stored in node->vusr.
+**
+** When the reader is called, sexcur() will return the sigil. This
+** allows the same function to handle multiple sigils.
 **
 ** The reader should consume only as many characters as it uses. That
 ** is, when the reader is finished, sexpeek(0) should return the _last_
@@ -85,13 +96,15 @@ typedef void *(*SexReader)(void);
 **  Reader sigils can be any ascii character, except:
 **    - alphanumeric characters
 **    - whitespace as defined by isspace()
-**    - the characters ( ) " .
+**    - the characters ( ) " -
 **    - the characters used by the SexNodeType enum:
 **        \a \b \t \n \v
 **
-**  The last parameter optional. If provided, it will be called by
-**  sexfree() to free the returned pointer. If not provided, free() will
-**  be used.
+**  The last parameter will be called by sexfree() to free the returned
+**  pointer.
 */
-int sexread(char sigil, SexReader, void(*ufree)(void*));
+void sexread(char sigil, SexReader, void(*ufree)(void*));
+
+
+#endif /* SEX__H */
 
