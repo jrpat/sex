@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define VALCHARS_MAX 512
-
 /**********************************************************************/
 
 typedef void (*FreeFn)(void*);
@@ -23,8 +21,8 @@ static Reader *readers = NULL;
 
 static const char *pcur;
 
-char sexpeek(int n) { return *(pcur + n); }
-char sexnext(int n) { return *(pcur += n); }
+char sexlook(int n) { return *(pcur + n); }
+char sexmove(int n) { return *(pcur += n); }
 
 int sexterm(char c) { return isspace(c) || c == '(' || c == ')' || !c; }
 
@@ -62,21 +60,21 @@ static void read_sym(SexNode *node) {
 
 static void read_str(SexNode *node) {
   int len=0, cap=32;
-  char *buf = malloc((cap+1) * sizeof(char));
-  while (sexpeek(1) && (sexpeek(1) != '"')) {
-    buf[len++] = sexnext(1);
-    if (len >= cap) buf = realloc(buf, ((cap <<= 1) + 1) * sizeof(char));
+  char *buf = SEX_MALLOC((cap+1) * sizeof(char));
+  while (sexpeek() && (sexpeek() != '"')) {
+    buf[len++] = sexnext();
+    if (len >= cap) buf = SEX_REALLOC(buf, ((cap <<= 1) + 1) * sizeof(char));
   }
-  sexnext(1); /* consume close quote */
+  sexnext(); /* consume close quote */
   buf[len] = '\0';
-  node->vstr = realloc(buf, (len+1) * sizeof(char));
+  node->vstr = SEX_REALLOC(buf, (len+1) * sizeof(char));
 }
 
 static SexNode *read_cur(void);
 
 static void read_list(SexNode *node) {
   SexNode *tail = NULL;
-  while (*pcur && sexnext(1)) {
+  while (*pcur && sexnext()) {
     if (*pcur == ')') break;
     SexNode *next = read_cur();
     if (!node->list)
@@ -89,7 +87,7 @@ static void read_list(SexNode *node) {
 
 static SexNode *read_cur(void) {
   char c = *pcur;
-  while (isspace(c)) c = sexnext(1);
+  while (isspace(c)) c = sexnext();
 
   if (!c) return NULL;
 
@@ -129,20 +127,20 @@ static SexNode *read_cur(void) {
 /**********************************************************************/
 
 SexNode *sexnode(char type) {
-  SexNode *n = calloc(1, sizeof(SexNode));
+  SexNode *n = SEX_CALLOC(1, sizeof(SexNode));
   n->type = type;
   return n;
 }
 
 char *sexscan(int (*is_term)(char)) {
-  char buffer[VALCHARS_MAX + 1];
+  char buffer[SEX_VALCHARS_MAX + 1];
   int len = 0;
   do {
     buffer[len++] = sexcur();
-    if (is_term(sexpeek(1))) break;
-  } while (sexnext(1));
+    if (is_term(sexpeek())) break;
+  } while (sexnext() && (len < SEX_VALCHARS_MAX));
   buffer[len] = '\0';
-  char *str = malloc((len+1)*sizeof(char));
+  char *str = SEX_MALLOC((len+1)*sizeof(char));
   return strcpy(str, buffer);
 }
 
@@ -175,7 +173,7 @@ void sexfree(SexNode *node) {
 }
 
 void sexreader(char sigil, SexReader read, FreeFn free) {
-  Reader *r = calloc(1, sizeof(Reader));
+  Reader *r = SEX_CALLOC(1, sizeof(Reader));
   *r = (Reader){.sigil=sigil, .read=read, .free=free};
   Reader *itr = readers;
   if (!itr) {
@@ -185,4 +183,7 @@ void sexreader(char sigil, SexReader read, FreeFn free) {
     itr->next = r;
   }
 }
+
+/**********************************************************************/
+
 

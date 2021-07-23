@@ -11,8 +11,25 @@
 ** Define these macros to use a different allocator
 */
 #ifndef SEX_MALLOC
-#define SEX_MALLOC malloc
-#define SEX_FREE free
+#define SEX_MALLOC  malloc
+#define SEX_CALLOC  calloc
+#define SEX_REALLOC realloc
+#define SEX_FREE    free
+#endif
+
+/*
+** Define this macro to set the maximum number of characters in a symbol
+** or number
+*/
+#ifndef SEX_VALCHARS_MAX
+#define SEX_VALCHARS_MAX 512
+#endif
+
+/*
+** Define this macro to include or exclude the sexprint function
+*/
+#ifndef SEX_ENABLE_PRINT
+#define SEX_ENABLE_PRINT 1
 #endif
 
 
@@ -109,9 +126,12 @@ SexNode *sexnode(char type);
 /*
 ** Current character manipulation
 */
-char sexnext(int n);  /* move cur by n and return the new character */
-char sexpeek(int n);  /* peek char at cur+n without moving cur */
-#define sexcur() sexpeek(0)
+char sexlook(int n);  /* peek char at cur+n without moving cur */
+char sexmove(int n);  /* move cur by n and return the new character */
+#define sexcur()  sexlook(0)
+#define sexpeek() sexlook(1)
+#define sexnext() sexmove(1)
+#define sexprev() sexmove(-1)
 
 /*
 ** Get a string of the value pointed to by cur. That is, every character
@@ -124,6 +144,17 @@ char *sexscan(int (*is_term)(char));
 */
 int sexterm(char c);
 
+
+
+/**********************************************************************/
+/*
+** Printing
+*/
+
+#if SEX_ENABLE_PRINT
+#include <stdio.h>
+void sexprint(FILE *out, SexNode *node);
+#endif
 
 #endif /* SEX__H */
 
