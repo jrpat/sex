@@ -3,7 +3,6 @@
 ** S-Expression Parser
 **
 */
-
 #ifndef SEX__H
 #define SEX__H
 
@@ -33,6 +32,7 @@
 #endif
 
 
+
 /**********************************************************************/
 /*
 ** Parse S-Expressions
@@ -56,7 +56,7 @@ struct SexNode {
     char    *vsym;  /* type SEX_SYMBOL */
     char    *vstr;  /* type SEX_STRING */
     long     vint;  /* type SEX_INTEGER */
-    float    vdec;  /* type SEX_DECIMAL */
+    double   vdec;  /* type SEX_DECIMAL */
     void    *vusr;  /* custom type */
   };
   char type;
@@ -134,8 +134,9 @@ char sexmove(int n);  /* move cur by n and return the new character */
 #define sexprev() sexmove(-1)
 
 /*
-** Get a string of the value pointed to by cur. That is, every character
-** before the next whitespace, (, or )
+** Reads at most SEX_VALCHARS_MAX characters until is_term(sexpeek())
+** returns 1, then returns a copy of those characters.
+** When finished, cur is pointing at the last read character.
 */
 char *sexscan(int (*is_term)(char));
 
@@ -143,6 +144,11 @@ char *sexscan(int (*is_term)(char));
 ** Returns 1 if the character is null, whitespace, (, or ).
 */
 int sexterm(char c);
+
+/*
+** Moves cur to the next non-whitespace character and returns it.
+*/
+char sexskip(void);
 
 
 
@@ -152,9 +158,17 @@ int sexterm(char c);
 */
 
 #if SEX_ENABLE_PRINT
+
+#ifndef SEX_PRINT_DEPTH_MAX
+#define SEX_PRINT_DEPTH_MAX 32
+#endif
+
+const char *sex_color_stem;
+
 #include <stdio.h>
 void sexprint(FILE *out, SexNode *node);
-#endif
+
+#endif /* SEX_ENABLE_PRINT */
 
 #endif /* SEX__H */
 

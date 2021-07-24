@@ -1,22 +1,17 @@
+#include "sex.h"
+
 #if SEX_ENABLE_PRINT
 
 #include <stdio.h>
 #include <unistd.h>
 
-#ifndef SEX_PRINT_DEPTH_MAX
-#define SEX_PRINT_DEPTH_MAX 32
-#endif
-
-#ifndef SEX_COLOR_STEM
-#define SEX_COLOR_STEM "30;1"
-#endif
-
 static int depth;
 static SexNode *chain[SEX_PRINT_DEPTH_MAX];
 static FILE *out;
-static tty;
+static int tty;
 
-#define CLR_STEM() if(tty) { fprintf(out, "\033[" SEX_COLOR_STEM "m"); }
+const char *sex_color_stem = "\033[30;1m";
+#define CLR_STEM() if(tty) { fprintf(out, sex_color_stem); }
 #define CLR_OFF() if(tty) { fprintf(out, "\033[m"); }
 
 #define PRN(...) fprintf(out, __VA_ARGS__)
@@ -62,7 +57,7 @@ static void prnode(SexNode *n) {
   switch (n->type) {
     case SEX_LIST:
       if (!n->list) {
-        PRNSTEM("⊏ ∅\n");
+        PRNSTEM("⊏ ∅"); PRN("\n");
         depth++;
         prtree(n->list, 1);
       } else if (n->list->type == SEX_LIST) {
@@ -110,7 +105,8 @@ static void prtree(SexNode *n, int indent) {
   if (n->type != SEX_LIST)
     PRN("\n");
 
-  prtree(n->next, 1);
+  if (depth == 0) PRN("\n");
+  prtree(n->next, (depth > 0));
 }
 
 void sexprint(FILE *out_, SexNode *n) {
@@ -121,7 +117,6 @@ void sexprint(FILE *out_, SexNode *n) {
   prtree(n, 0);
 
   out = NULL;
-  tty = 0;
   for (int i=0; i < 32; i++) chain[i] = NULL;
 }
 
