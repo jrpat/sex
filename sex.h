@@ -28,7 +28,7 @@
 ** Define this macro to include or exclude the sexprint function
 */
 #ifndef SEX_ENABLE_PRINT
-#define SEX_ENABLE_PRINT 1
+#define SEX_ENABLE_PRINT 0
 #endif
 
 

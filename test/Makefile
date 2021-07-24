@@ -7,6 +7,7 @@ endif
 
 CFLAGS += -g -Wall -Wextra -Werror
 CFLAGS += -std=c11 -D_POSIX_C_SOURCE=1
+CFLAGS += -DSEX_ENABLE_PRINT=1
 
 run: test
 	./test

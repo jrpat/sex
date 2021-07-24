@@ -11,7 +11,8 @@
 **Dependencies:**
 - A C11 compiler *(see [Limitations](#Limitations) section for
   a workaround)*
-- POSIX *(unless you disable pretty-printing. See [Printing](#Printing).)*
+- POSIX *(only if you enable pretty-printing. See
+  [Printing](#Printing).)*
 
 
 ## Parsing
@@ -177,24 +178,23 @@ sexprint(stdout, sexread("(a (b c ((d e) f g)) () h)"));
 
 ```
 
-
-`sexprint.c` requires `stdio.h` and POSIX compliance (for
-`fileno()`).
-
-To disable pretty-printing:
+Pretty-printing is disabled by default. To enable it:
 
 ```c
-#define SEX_ENABLE_PRINT 0
+#define SEX_ENABLE_PRINT 1
 ```
+
+If enabled:
+- `sex.h` will `#include <stdio.h>` and declare `sexprint()` and
+  `sex_color_stem.`
+- You must include `sexprint.c` in your build. It requires POSIX
+  compliance (for `fileno()`).
 
 If disabled:
 - `sex.h` will not `#include <stdio.h>` and will not declare
   `sexprint()` or `sex_color_stem`.
-- `sex.c` is a no-op, and thus POSIX is not required.
-
-You can then exclude `sexprint.c` from your build (though it won't hurt
-to leave it in, as the whole file is wrapped in `#if SEX_ENABLE_PRINT`
-anyway).
+- You do not need `sexprint.c` in your build (though it won't hurt, as
+  the whole file is gated by `#if SEX_ENABLE_PRINT`)
 
 
 ## Configuration
@@ -216,8 +216,8 @@ the following macro:
 #define SEX_VALCHARS_MAX 1024  /* default is 512 */
 ```
 
-By default `sexprint()` prints the stems of the tree in grey if printing
-to a tty. To change the color, set the `sex_color_stem` variable before
+By default `sexprint()` colors the tree stems grey if printing to
+a tty. To change the color, set the `sex_color_stem` variable before
 calling `sexprint()`:
 
 ```c
@@ -237,7 +237,8 @@ sex_color_stem = "\033[0m";       /* default */
   default.
 - The node struct uses anonymous unions for interface simplicity, so
   a C11 compiler is required.
-  - *(You could easily change this by giving the union a name.)*
+  - *(You could easily change this by giving the union a name in
+    `sex.h`, and modifying references to `->vxxx` in `sex.c`)*
 - Dotted pairs are not parsed as in many lisps. A dot in a list is
   interpreted as the symbol `.`
 - Escape characters in strings are not parsed.
