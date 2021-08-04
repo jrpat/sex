@@ -3,43 +3,15 @@
 ** S-Expression Parser
 **
 */
+
 #ifndef SEX__H
 #define SEX__H
-
-/*
-** Define these macros to use a different allocator
-*/
-#ifndef SEX_MALLOC
-#define SEX_MALLOC  malloc
-#define SEX_CALLOC  calloc
-#define SEX_REALLOC realloc
-#define SEX_FREE    free
-#endif
-
-/*
-** Define this macro to set the maximum number of characters in a symbol
-** or number
-*/
-#ifndef SEX_VALCHARS_MAX
-#define SEX_VALCHARS_MAX 512
-#endif
-
-/*
-** Define this macro to include or exclude the sexprint function
-*/
-#ifndef SEX_ENABLE_PRINT
-#define SEX_ENABLE_PRINT 0
-#endif
-
 
 
 /**********************************************************************/
 /*
-** Parse S-Expressions
+** Parsing
 */
-
-typedef enum SexNodeType SexNodeType;
-typedef struct SexNode SexNode;
 
 enum SexNodeType {
   SEX_LIST    = '\a',
@@ -48,6 +20,8 @@ enum SexNodeType {
   SEX_INTEGER = '\n',
   SEX_DECIMAL = '\v',
 };
+
+typedef struct SexNode SexNode;
 
 struct SexNode {
   SexNode *next;
@@ -154,6 +128,38 @@ char sexskip(void);
 
 /**********************************************************************/
 /*
+** Configuration
+*/
+
+/*
+** Define these macros to use a different allocator
+*/
+#ifndef SEX_MALLOC
+#define SEX_MALLOC  malloc
+#define SEX_CALLOC  calloc
+#define SEX_REALLOC realloc
+#define SEX_FREE    free
+#endif
+
+/*
+** Define this macro to set the maximum number of characters in a symbol
+** or number
+*/
+#ifndef SEX_VALCHARS_MAX
+#define SEX_VALCHARS_MAX 512
+#endif
+
+/*
+** Define this macro to include or exclude the sexprint function
+*/
+#ifndef SEX_ENABLE_PRINT
+#define SEX_ENABLE_PRINT 0
+#endif
+
+
+
+/**********************************************************************/
+/*
 ** Printing
 */
 
@@ -170,5 +176,8 @@ void sexprint(FILE *out, SexNode *node);
 
 #endif /* SEX_ENABLE_PRINT */
 
+
+/**********************************************************************/
 #endif /* SEX__H */
+/**********************************************************************/
 

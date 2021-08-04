@@ -37,7 +37,6 @@ typedef struct PhoneNum {
   char seg1[4], seg2[5];
 } PhoneNum;
 
-
 void read_phonenum(SexNode *node) {
   int i=0, seg=0;
   PhoneNum *p = calloc(1, sizeof(PhoneNum));

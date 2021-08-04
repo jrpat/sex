@@ -23,8 +23,8 @@
 SexNode *sexread(const char *str);
 ```
 
-Multiple top-level s-expressions are allowed. The first is returned, and
-the rest are available via `->next`.
+Multiple top-level s-expressions are allowed. The first is returned,
+and the rest are available via `->next`.
 
 **Recursively free a `SexNode`'s memory:**
 
