@@ -10,7 +10,7 @@
 
 **Dependencies:**
 - A C11 compiler *(see [Limitations](#Limitations) section for
-  a workaround)*
+  a C99 workaround)*
 - POSIX *(only if you enable pretty-printing. See
   [Printing](#Printing).)*
 
